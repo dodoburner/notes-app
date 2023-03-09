@@ -1,6 +1,6 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { Button } from "react-bootstrap";
+import { Button, Spinner } from "react-bootstrap";
 import Col from "react-bootstrap/esm/Col";
 import Container from "react-bootstrap/esm/Container";
 import Row from "react-bootstrap/esm/Row";
@@ -12,18 +12,26 @@ import { FaPlus } from "react-icons/fa";
 
 function App() {
   const [notes, setNotes] = useState<NoteModel[]>([]);
-  const [isNoteDialogOpen, setNoteDialogOpen] = useState<boolean>(false);
+  const [isNoteDialogOpen, setNoteDialogOpen] = useState(false);
   const [noteToEdit, setNoteToEdit] = useState<NoteModel | null>(null);
+  const [areNotesLoading, setAreNotesLoading] = useState(true);
+  const [showNotesLoadError, setShowNotesLoadError] = useState(false);
 
   useEffect(() => {
     const getNotes = async () => {
       try {
+        // setAreNotesLoading(true);
+        // setShowNotesLoadError(false);
+
         const response = await axios.get("api/notes");
         const { data } = response;
 
         setNotes(data);
       } catch (error) {
         console.log(error);
+        setShowNotesLoadError(true);
+      } finally {
+        setAreNotesLoading(false);
       }
     };
 
@@ -44,16 +52,9 @@ function App() {
     }
   };
 
-  return (
-    <Container>
-      <Button
-        className="my-4 d-flex align-items-center gap-1"
-        onClick={() => setNoteDialogOpen(true)}
-      >
-        <FaPlus />
-        Add Note
-      </Button>
-      <Row xs={1} md={2} xl={3}>
+  const notesGrid = () => {
+    return (
+      <Row xs={1} md={2} xl={3} className="w-100">
         {notes.map((note) => {
           return (
             <Col className="mb-4" key={note._id}>
@@ -70,6 +71,25 @@ function App() {
           );
         })}
       </Row>
+    );
+  };
+
+  return (
+    <Container className="d-flex flex-column align-items-center">
+      <Button
+        className="my-4 d-flex align-items-center gap-1"
+        onClick={() => setNoteDialogOpen(true)}
+      >
+        <FaPlus />
+        Add Note
+      </Button>
+      {areNotesLoading && <Spinner animation="border" variant="primary" />}
+      {showNotesLoadError && <p>Something went wrong, please refresh the page</p>}
+      {!areNotesLoading && !showNotesLoadError && (
+        <>
+          {notes.length > 0 ? notesGrid() : <p>You have no notes yet</p>}
+        </>
+      )}
 
       {isNoteDialogOpen && (
         <NoteDialog
