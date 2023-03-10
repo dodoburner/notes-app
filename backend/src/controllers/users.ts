@@ -9,11 +9,29 @@ interface UserParams {
   password?: string;
 }
 
-export const signUp: RequestHandler<unknown, unknown, UserParams, unknown> = async (
-  req,
-  res,
-  next
-) => {
+export const getAuthenticatedUser: RequestHandler = async (req, res, next) => {
+  const authenticatedUserId = req.session.userId;
+  try {
+    if (!authenticatedUserId) {
+      throw createHttpError(401, "User not authenticated");
+    }
+
+    const user = await User.findById(authenticatedUserId)
+      .select("+email")
+      .exec();
+
+    res.status(200).json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const signup: RequestHandler<
+  unknown,
+  unknown,
+  UserParams,
+  unknown
+> = async (req, res, next) => {
   try {
     const { username, email, password: rawPassword } = req.body;
 
@@ -37,8 +55,54 @@ export const signUp: RequestHandler<unknown, unknown, UserParams, unknown> = asy
 
     const user = await User.create({ username, email, password });
 
+    req.session.userId = user._id;
+
     res.status(201).json(user);
   } catch (error) {
     next(error);
   }
+};
+
+interface LoginParams {
+  username?: string;
+  password?: string;
+}
+
+export const login: RequestHandler = async (req, res, next) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      throw createHttpError(400, "Missing paramaters");
+    }
+
+    const user = await User.findOne({ username })
+      .select("+password +email")
+      .exec();
+
+    if (!user) {
+      throw createHttpError(401, "Invalid credentials");
+    }
+
+    const matchedPassword = await bcrypt.compare(password, user.password);
+
+    if (!matchedPassword) {
+      throw createHttpError(401, "Invalid credentials");
+    }
+
+    req.session.userId = user._id;
+    res.status(201).json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const logout: RequestHandler = (req, res, next) => {
+  req.session.destroy((error) => {
+    if (error) {
+      next(error);
+    } else {
+      res.sendStatus(200);
+    }
+  });
 };
