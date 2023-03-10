@@ -6,11 +6,11 @@ import NoteModel from "./models/note";
 interface NoteDialogProps {
   note?: NoteModel;
   onDismiss: () => void;
-  onNoteSaved: (note: Note) => void;
-  onNoteEdited: (note: Note) => void;
+  onNoteSaved: (note: NoteModel) => void;
+  onNoteEdited: (note: NoteModel) => void;
 }
 
-interface Note {
+interface InputNote {
   title: Text;
   text?: Text;
 }
@@ -20,11 +20,11 @@ const NoteDialog = ({ note, onDismiss, onNoteSaved, onNoteEdited }: NoteDialogPr
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<Note>({
+  } = useForm<InputNote>({
     defaultValues: { title: note?.title || "", text: note?.text || "" },
   });
 
-  const onSubmit = async (input: Note) => {
+  const onSubmit = async (input: InputNote) => {
     try {
       let response;
       if (note) {
